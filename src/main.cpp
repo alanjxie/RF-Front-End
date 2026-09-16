@@ -1,105 +1,14 @@
 #include <Arduino.h>
 #include <vector>
 #include <map>
+#include "dictionaries.h"
 
-std::map<std::vector<uint8_t>, char> decodeDict = {
-
-    // lowercase
-    {{0b00, 0b00, 0b00}, 'a'},
-    {{0b00, 0b00, 0b01}, 'b'},
-    {{0b00, 0b00, 0b10}, 'c'},
-    {{0b00, 0b00, 0b11}, 'd'},
-
-    {{0b00, 0b01, 0b00}, 'e'},
-    {{0b00, 0b01, 0b01}, 'f'},
-    {{0b00, 0b01, 0b10}, 'g'},
-    {{0b00, 0b01, 0b11}, 'h'},
-
-    {{0b00, 0b10, 0b00}, 'i'},
-    {{0b00, 0b10, 0b01}, 'j'},
-    {{0b00, 0b10, 0b10}, 'k'},
-    {{0b00, 0b10, 0b11}, 'l'},
-
-    {{0b00, 0b11, 0b00}, 'm'},
-    {{0b00, 0b11, 0b01}, 'n'},
-    {{0b00, 0b11, 0b10}, 'o'},
-    {{0b00, 0b11, 0b11}, 'p'},
-
-    {{0b01, 0b00, 0b00}, 'q'},
-    {{0b01, 0b00, 0b01}, 'r'},
-    {{0b01, 0b00, 0b10}, 's'},
-    {{0b01, 0b00, 0b11}, 't'},
-
-    {{0b01, 0b01, 0b00}, 'u'},
-    {{0b01, 0b01, 0b01}, 'v'},
-    {{0b01, 0b01, 0b10}, 'w'},
-    {{0b01, 0b01, 0b11}, 'x'},
-
-    {{0b01, 0b10, 0b00}, 'y'},
-    {{0b01, 0b10, 0b01}, 'z'},
-
-
-    // uppercase
-    {{0b01, 0b10, 0b10}, 'A'},
-    {{0b01, 0b10, 0b11}, 'B'},
-
-    {{0b01, 0b11, 0b00}, 'C'},
-    {{0b01, 0b11, 0b01}, 'D'},
-    {{0b01, 0b11, 0b10}, 'E'},
-    {{0b01, 0b11, 0b11}, 'F'},
-
-    {{0b10, 0b00, 0b00}, 'G'},
-    {{0b10, 0b00, 0b01}, 'H'},
-    {{0b10, 0b00, 0b10}, 'I'},
-    {{0b10, 0b00, 0b11}, 'J'},
-
-    {{0b10, 0b01, 0b00}, 'K'},
-    {{0b10, 0b01, 0b01}, 'L'},
-    {{0b10, 0b01, 0b10}, 'M'},
-    {{0b10, 0b01, 0b11}, 'N'},
-
-    {{0b10, 0b10, 0b00}, 'O'},
-    {{0b10, 0b10, 0b01}, 'P'},
-    {{0b10, 0b10, 0b10}, 'Q'},
-    {{0b10, 0b10, 0b11}, 'R'},
-
-    {{0b10, 0b11, 0b00}, 'S'},
-    {{0b10, 0b11, 0b01}, 'T'},
-    {{0b10, 0b11, 0b10}, 'U'},
-    {{0b10, 0b11, 0b11}, 'V'},
-
-    {{0b11, 0b00, 0b00}, 'W'},
-    {{0b11, 0b00, 0b01}, 'X'},
-    {{0b11, 0b00, 0b10}, 'Y'},
-    {{0b11, 0b00, 0b11}, 'Z'},
-
-
-    // numbers 1-9
-    {{0b11, 0b01, 0b00}, '1'},
-    {{0b11, 0b01, 0b01}, '2'},
-    {{0b11, 0b01, 0b10}, '3'},
-    {{0b11, 0b01, 0b11}, '4'},
-
-    {{0b11, 0b10, 0b00}, '5'},
-    {{0b11, 0b10, 0b01}, '6'},
-    {{0b11, 0b10, 0b10}, '7'},
-    {{0b11, 0b10, 0b11}, '8'},
-
-    {{0b11, 0b11, 0b00}, '9'},
-
-
-    // space
-    {{0b11, 0b11, 0b01}, ' '}
-
-    // {0b11, 0b11, 0b10} synch command
-    // {0b11, 0b11, 0b11} stop command
-};
-
-
-std::map<char, std::vector<uint8_t>> encodeDict;
+std::map<std::vector<uint8_t>, char> decodeDict = createDecodeDict();
+std::map<char, std::vector<uint8_t>> encodeDict = createEncodeDict(decodeDict);
 bool synchSent = false;
 bool stopReceived = false;
-std::vector<u_int8_t> readArray;
+std::vector<u_int8_t> readByteArray;
+String endWord = "";
 int phaseEncoderVar;
 u_int8_t byte_buffer1;
 u_int8_t byte_buffer2;
@@ -108,9 +17,6 @@ u_int8_t byte_buffer3;
 
 void setup() {
   Serial.begin(115200);
-    for (const auto& pair : decodeDict) { //reverse dictionary setup
-        encodeDict[pair.second] = pair.first;
-    }
 }
 
 void loop() {
@@ -125,25 +31,36 @@ void loop() {
         phaseDecoder(0x10); //sent synch!
       }
       //receive data...
-      while (stopReceived == false) {
+      /*
+      Going to have to rewrite this loop when clocked...3 iterations is ugly brosdf
+      
+      */
+      while (stopReceived == false) {. 
+        float raw1 = analogRead(36); //read first raw voltage
+        float raw2 = analogRead(39); //read second raw voltage
+        float volt1 = raw1 * 3.3 / 4095.0; //convert to actual voltage
+        float volt2 = raw2 * 3.3 / 4095.0; // ^
+        byte_buffer1 = phaseEncoder(volt1, volt2); //first byte
         float raw1 = analogRead(36);
         float raw2 = analogRead(39);
-        float volt1 = raw1 * 3.3 / 4095.0;
-        float volt2 = raw2 * 3.3 / 4095.0;
-        byte_buffer1 = phaseEncoder(volt1, volt2);
+        byte_buffer2 = phaseEncoder(volt1, volt2); //second byte
         float raw1 = analogRead(36);
         float raw2 = analogRead(39);
-        byte_buffer2 = phaseEncoder(volt1, volt2);
-        float raw1 = analogRead(36);
-        float raw2 = analogRead(39);
-        byte_buffer3 = phaseEncoder(volt1, volt2);        
-          delay(500);
-        synchSent = true;
+        byte_buffer3 = phaseEncoder(volt1, volt2); //third byte     
+        delay(500);
+
+        readByteArray = {byte_buffer1, byte_buffer2, byte_buffer3};
+        endWord += wordDecoder(readByteArray);
       }
+      Serial.println(endWord);
+      endWord = "";
+      
+    } else if (state == "WRITE") {
+      Serial.println("You selected write.");
+      //if ()
     }
-
   }
-
+  synchSent = true;
 }
 
 //Assuming the negative sign is already implemented into Q
@@ -154,7 +71,7 @@ u_int8_t phaseEncoder(double I, double Q){
   } else if ((I - Q) == 0) {
     phaseEncoderVar = 135;
   } else if ((I - Q) == -1.414) {
-    phaseEncoderVar == 225;
+    phaseEncoderVar = 225;
   } else {
     phaseEncoderVar = 315;
   }
@@ -234,7 +151,7 @@ void phaseDecoder(u_int8_t phase) { //virtual 0 at 1.65
 std::vector<uint8_t> wordEncoder(String word){ //transforms words into bits
   std::vector<uint8_t> fullBitArray;
   for (int i = 0; i < word.length(); i++) {
-    std::vector<uint8_t> charBitArray = encodeDict[word[i]];
+    std::vector<uint8_t> charBitArray = encodeDict.at(word[i]);
     fullBitArray.insert(fullBitArray.end(), charBitArray.begin(), charBitArray.end());
   };
 
@@ -246,7 +163,7 @@ String wordDecoder(std::vector<uint8_t> bitArray) {//transforms bits into word
   std::vector<uint8_t> buffer;
   for (int i = 0; i < bitArray.size(); i += 3) {
     buffer = {bitArray[i], bitArray[i+1], bitArray[i+2]};
-    endWord += decodeDict[buffer];
+    endWord += decodeDict.at(buffer);
   };
 
   return endWord;
