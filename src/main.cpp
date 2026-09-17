@@ -13,7 +13,8 @@ int phaseEncoderVar;
 u_int8_t byte_buffer1;
 u_int8_t byte_buffer2;
 u_int8_t byte_buffer3;
-
+float raw1;
+float raw2;
 
 void setup() {
   Serial.begin(115200);
@@ -35,9 +36,9 @@ void loop() {
       Going to have to rewrite this loop when clocked...3 iterations is ugly brosdf
       
       */
-      while (stopReceived == false) {. 
-        float raw1 = analogRead(36); //read first raw voltage
-        float raw2 = analogRead(39); //read second raw voltage
+      while (stopReceived == false) {
+        raw1 = analogRead(36); //read first raw voltage
+        raw2 = analogRead(39); //read second raw voltage
         float volt1 = raw1 * 3.3 / 4095.0; //convert to actual voltage
         float volt2 = raw2 * 3.3 / 4095.0; // ^
         byte_buffer1 = phaseEncoder(volt1, volt2); //first byte
