@@ -2,151 +2,59 @@
 #include <vector>
 #include <map>
 #include "dictionaries.h"
+#include "state.h"
+#include "globals.h"
+#include "phaseMath.h"
 
-std::map<std::vector<uint8_t>, char> decodeDict = createDecodeDict();
-std::map<char, std::vector<uint8_t>> encodeDict = createEncodeDict(decodeDict);
-bool synchSent = false;
-bool stopReceived = false;
-std::vector<u_int8_t> readByteArray;
-String endWord = "";
-int phaseEncoderVar;
-u_int8_t byte_buffer1;
-u_int8_t byte_buffer2;
-u_int8_t byte_buffer3;
-float raw1;
-float raw2;
+//declarations
+GlobalState glob;
+ReceiveState rx;
+TransmitState tx;
+std::map<std::vector<uint8_t>, char> decodeDict = createDecodeDict(); //decode map, bits to words
+std::map<char, std::vector<uint8_t>> encodeDict = createEncodeDict(decodeDict); //encode map, words to bits
+
 
 void setup() {
   Serial.begin(115200);
 }
 
 void loop() {
-  Serial.println("Are you reading or writing? Type READ or WRITE. \n");
+  Serial.println("Are you reading or writing? Type READ or SEND. \n");
   if (Serial.available()) {
-    String state = Serial.readStringUntil('\n');
-    if (state == "READ") {
+    String userChoice = Serial.readStringUntil('\n');
+    if (userChoice == "READ") {
       Serial.println("You selected read.");
-      if (synchSent == false) {
-        phaseDecoder(0x11);
-        phaseDecoder(0x11);
-        phaseDecoder(0x10); //sent synch!
+      glob.state = State::RX_SYNC;
+
+    } else if (userChoice == "WRITE") {
+      Serial.println("You selected write.");
+    } else {
+      Serial.println("Invalid configuration. Try again.");
+    }
+      if (rx.synchSent == false) {
+        phaseDecoder(glob.I, glob.Q, 0x11);
+        phaseDecoder(glob.I, glob.Q, 0x11);
+        phaseDecoder(glob.I, glob.Q, 0x10); //sent synch!
       }
       //receive data...
       /*
       Going to have to rewrite this loop when clocked...3 iterations is ugly brosdf
       
       */
-      while (stopReceived == false) {
-        raw1 = analogRead(36); //read first raw voltage
-        raw2 = analogRead(39); //read second raw voltage
-        float volt1 = raw1 * 3.3 / 4095.0; //convert to actual voltage
-        float volt2 = raw2 * 3.3 / 4095.0; // ^
-        byte_buffer1 = phaseEncoder(volt1, volt2); //first byte
-        float raw1 = analogRead(36);
-        float raw2 = analogRead(39);
-        byte_buffer2 = phaseEncoder(volt1, volt2); //second byte
-        float raw1 = analogRead(36);
-        float raw2 = analogRead(39);
-        byte_buffer3 = phaseEncoder(volt1, volt2); //third byte     
-        delay(500);
-
-        readByteArray = {byte_buffer1, byte_buffer2, byte_buffer3};
-        endWord += wordDecoder(readByteArray);
-      }
-      Serial.println(endWord);
-      endWord = "";
-      
-    } else if (state == "WRITE") {
-      Serial.println("You selected write.");
-      //if ()
+      while (rx.stopReceived == false) {
+        //implement this jawn later
     }
+    rx.synchSent = true;
   }
-  synchSent = true;
 }
 
 //Assuming the negative sign is already implemented into Q
-
-u_int8_t phaseEncoder(double I, double Q){
-  if ((I - Q) == 1.414) {
-    phaseEncoderVar = 45;
-  } else if ((I - Q) == 0) {
-    phaseEncoderVar = 135;
-  } else if ((I - Q) == -1.414) {
-    phaseEncoderVar = 225;
-  } else {
-    phaseEncoderVar = 315;
-  }
-  switch (phaseEncoderVar) {
-    case 45:
-      return 0x00;
-      break;
-
-    case 135:
-      return 0x01;
-      break;
-
-    case 225:
-      return 0x10;
-      break;
-
-    case 315:
-      return 0x11;
-      break;
-  }
-  return 0;
-}
 
 int I_PIN = 25;
 int Q_PIN = 26;
 double I;
 double Q;
-void phaseDecoder(u_int8_t phase) { //virtual 0 at 1.65
-  switch (phase) {
-    case 0x00: //45
-      I = 2.357;
-      Q = 0.943;
-      dacWrite(25, I_PIN);
-      dacWrite(26, Q_PIN);
-      delay(500);
-      dacWrite(25, 1.65);
-      dacWrite(26, 1.65);
-      delay(500);
-      break;
 
-    case 0x01: //135
-      I = 0.943;
-      Q = 0.943;
-      dacWrite(25, I_PIN);
-      dacWrite(26, Q_PIN);
-      delay(500);
-      dacWrite(25, 1.65);
-      dacWrite(26, 1.65);
-      delay(500);
-      break;
-
-    case 0x10: //225
-      I = 0.943;
-      Q = 2.357;
-      dacWrite(25, I_PIN);
-      dacWrite(26, Q_PIN);
-      delay(500);
-      dacWrite(25, 1.65);
-      dacWrite(26, 1.65);
-      delay(500);
-      break;
-
-    case 0x11: //315
-      I = 2.357;
-      Q = 2.357;
-      dacWrite(25, I_PIN);
-      dacWrite(26, Q_PIN);
-      delay(500);
-      dacWrite(25, 1.65);
-      dacWrite(26, 1.65);
-      delay(500);
-      break;
-  }
-}
 
 
 std::vector<uint8_t> wordEncoder(String word){ //transforms words into bits
