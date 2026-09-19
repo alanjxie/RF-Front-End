@@ -1,5 +1,5 @@
 #include "dictionaries.h"
-std::map<std::vector<uint8_t>, char> createDecodeDict() {
+std::map<std::vector<uint8_t>, char> byteToWordDict() {
     std::map<std::vector<uint8_t>, char> decodeDict;
     decodeDict = {
     // lowercase
@@ -96,7 +96,7 @@ std::map<std::vector<uint8_t>, char> createDecodeDict() {
 }
 
 
-std::map<char, std::vector<uint8_t>> createEncodeDict (const std::map<std::vector<uint8_t>, char> decodeDict){
+std::map<char, std::vector<uint8_t>> wordToByteDict (const std::map<std::vector<uint8_t>, char> decodeDict){
     std::map<char, std::vector<uint8_t>> encodeDict;
     for (const auto& pair : decodeDict) { //reverse dictionary setup
         encodeDict[pair.second] = pair.first;
