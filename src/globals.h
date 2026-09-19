@@ -1,5 +1,6 @@
 #include <vector>
 #include "State.h"
+#include <cstdint>
 
 struct GlobalState {
     double I;

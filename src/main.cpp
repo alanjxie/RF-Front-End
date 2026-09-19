@@ -5,6 +5,7 @@
 #include "state.h"
 #include "globals.h"
 #include "phaseMath.h"
+#include "encodeDecode.h"
 
 //declarations
 GlobalState glob;
@@ -50,22 +51,22 @@ void loop() {
 
 //Assuming the negative sign is already implemented into Q
 
-std::vector<uint8_t> wordEncoder(String word){ //transforms words into bits
+std::vector<uint8_t> wordEncoder(String word, std::map<char, std::vector<uint8_t>> dict){ //transforms words into bits
   std::vector<uint8_t> fullBitArray;
   for (int i = 0; i < word.length(); i++) {
-    std::vector<uint8_t> charBitArray = w2bDict.at(word[i]);
+    std::vector<uint8_t> charBitArray = dict.at(word[i]);
     fullBitArray.insert(fullBitArray.end(), charBitArray.begin(), charBitArray.end());
   };
 
   return fullBitArray;
 }
 
-String wordDecoder(std::vector<uint8_t> bitArray) {//transforms bits into word
+String wordDecoder(std::vector<uint8_t> bitArray, std::map<std::vector<uint8_t>, char> dict) {//transforms bits into word
   String endWord;
   std::vector<uint8_t> buffer;
   for (int i = 0; i < bitArray.size(); i += 3) {
     buffer = {bitArray[i], bitArray[i+1], bitArray[i+2]};
-    endWord += b2wDict.at(buffer);
+    endWord += dict.at(buffer);
   };
 
   return endWord;
