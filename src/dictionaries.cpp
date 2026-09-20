@@ -96,7 +96,7 @@ std::map<std::vector<uint8_t>, char> byteToWordDict() {
 }
 
 
-std::map<char, std::vector<uint8_t>> wordToByteDict (const std::map<std::vector<uint8_t>, char> decodeDict){
+std::map<char, std::vector<uint8_t>> wordToByteDict (const std::map<std::vector<uint8_t>, char>& decodeDict){
     std::map<char, std::vector<uint8_t>> encodeDict;
     for (const auto& pair : decodeDict) { //reverse dictionary setup
         encodeDict[pair.second] = pair.first;

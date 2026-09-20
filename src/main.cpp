@@ -2,17 +2,15 @@
 #include <vector>
 #include <map>
 #include "dictionaries.h"
-#include "state.h"
+#include "State.h"
 #include "globals.h"
 #include "phaseMath.h"
 #include "encodeDecode.h"
 
 //declarations
-GlobalState glob;
-ReceiveState rx;
-TransmitState tx;
-std::map<std::vector<uint8_t>, char> b2wDict = byteToWordDict(); //decode map, bits to words
-std::map<char, std::vector<uint8_t>> w2bDict = wordToByteDict(b2wDict); //encode map, words to bits
+const std::map<std::vector<uint8_t>, char> b2wDict = byteToWordDict(); //decode map, bits to words
+const std::map<char, std::vector<uint8_t>> w2bDict = wordToByteDict(b2wDict); //encode map, words to bits
+State state = State::IDLE;
 
 
 void setup() {
@@ -33,9 +31,9 @@ void loop() {
       Serial.println("Invalid configuration. Try again.");
     }
       if (rx.synchSent == false) {
-        byteToIQ(glob.I, glob.Q, 0x11);
-        byteToIQ(glob.I, glob.Q, 0x11);
-        byteToIQ(glob.I, glob.Q, 0x10); //sent synch!
+        byteToIQ(0x11);
+        byteToIQ(0x11);
+        byteToIQ(0x10); //sent synch!
       }
       //receive data...
       /*
@@ -50,24 +48,3 @@ void loop() {
 }
 
 //Assuming the negative sign is already implemented into Q
-
-std::vector<uint8_t> wordEncoder(String word, std::map<char, std::vector<uint8_t>> dict){ //transforms words into bits
-  std::vector<uint8_t> fullBitArray;
-  for (int i = 0; i < word.length(); i++) {
-    std::vector<uint8_t> charBitArray = dict.at(word[i]);
-    fullBitArray.insert(fullBitArray.end(), charBitArray.begin(), charBitArray.end());
-  };
-
-  return fullBitArray;
-}
-
-String wordDecoder(std::vector<uint8_t> bitArray, std::map<std::vector<uint8_t>, char> dict) {//transforms bits into word
-  String endWord;
-  std::vector<uint8_t> buffer;
-  for (int i = 0; i < bitArray.size(); i += 3) {
-    buffer = {bitArray[i], bitArray[i+1], bitArray[i+2]};
-    endWord += dict.at(buffer);
-  };
-
-  return endWord;
-}

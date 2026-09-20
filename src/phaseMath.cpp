@@ -1,8 +1,10 @@
 #include "phaseMath.h"
-#include "globals.h";
-#include <Arduino.h>;
+#include "globals.h"
+#include <Arduino.h>
 
-void byteToIQ(double I, double Q, uint8_t phase) { //takes symbol, computes I and Q, and writes to DAC
+void byteToIQ(uint8_t phase) { //takes symbol, computes I and Q, and writes to DAC
+  double I;
+  double Q;
   switch (phase) {
     case 0x00: //45
       I = 2.357;
@@ -50,7 +52,7 @@ void byteToIQ(double I, double Q, uint8_t phase) { //takes symbol, computes I an
   }
 }
 
-u_int8_t iqToByte(double I, double Q, int phaseAngle){ //takes I and Q, computes phase, returns symbol
+uint8_t iqToByte(double I, double Q, int phaseAngle){ //takes I and Q, computes phase, returns symbol
   if ((I - Q) == 1.414) {
     phaseAngle = 45;
   } else if ((I - Q) == 0) {
