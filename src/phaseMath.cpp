@@ -2,82 +2,21 @@
 #include "globals.h"
 #include <Arduino.h>
 
-void byteToIQ(uint8_t phase) { //takes symbol, computes I and Q, and writes to DAC
-  double I;
-  double Q;
-  switch (phase) {
-    case 0x00: //45
-      I = 2.357;
-      Q = 0.943;
-      dacWrite(25, I);
-      dacWrite(26, Q);
-      delay(500);
-      dacWrite(25, 1.65);
-      dacWrite(26, 1.65);
-      delay(500);
-      break;
-
-    case 0x01: //135
-      I = 0.943;
-      Q = 0.943;
-      dacWrite(25, I);
-      dacWrite(26, Q);
-      delay(500);
-      dacWrite(25, 1.65);
-      dacWrite(26, 1.65);
-      delay(500);
-      break;
-
-    case 0x10: //225
-      I = 0.943;
-      Q = 2.357;
-      dacWrite(25, I);
-      dacWrite(26, Q);
-      delay(500);
-      dacWrite(25, 1.65);
-      dacWrite(26, 1.65);
-      delay(500);
-      break;
-
-    case 0x11: //315
-      I = 2.357;
-      Q = 2.357;
-      dacWrite(25, I);
-      dacWrite(26, Q);
-      delay(500);
-      dacWrite(25, 1.65);
-      dacWrite(26, 1.65);
-      delay(500);
-      break;
+void byteToIQ(uint8_t symbol) {
+  // DAC takes counts (0..255), not volts. These approximate 0.943/2.357 V.
+  const uint8_t low = 73;
+  const uint8_t high = 182;
+  switch (symbol) {
+    case 0b00: dacWrite(glob.I_PIN, high); dacWrite(glob.Q_PIN, low); break;
+    case 0b01: dacWrite(glob.I_PIN, low);  dacWrite(glob.Q_PIN, low); break;
+    case 0b10: dacWrite(glob.I_PIN, low);  dacWrite(glob.Q_PIN, high); break;
+    case 0b11: dacWrite(glob.I_PIN, high); dacWrite(glob.Q_PIN, high); break;
   }
+  // Hold this output until the next symbol tick.
 }
 
-uint8_t iqToByte(double I, double Q, int phaseAngle){ //takes I and Q, computes phase, returns symbol
-  if ((I - Q) == 1.414) {
-    phaseAngle = 45;
-  } else if ((I - Q) == 0) {
-    phaseAngle = 135;
-  } else if ((I - Q) == -1.414) {
-    phaseAngle = 225;
-  } else {
-    phaseAngle = 315;
-  }
-  switch (phaseAngle) {
-    case 45:
-      return 0x00;
-      break;
-
-    case 135:
-      return 0x01;
-      break;
-
-    case 225:
-      return 0x10;
-      break;
-
-    case 315:
-      return 0x11;
-      break;
-  }
-  return 0;
+uint8_t iqToByte(double I, double Q) {
+  // Compare each channel with its 1.65 V midpoint (Q is already inverted).
+  if (I >= 1.65) return Q >= 1.65 ? 0b11 : 0b00;
+  return Q >= 1.65 ? 0b10 : 0b01;
 }
